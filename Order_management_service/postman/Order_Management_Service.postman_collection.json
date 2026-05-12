@@ -1,0 +1,209 @@
+{
+	"info": {
+		"_postman_id": "a7c3e2b1-order-mgmt-001",
+		"name": "Order Management Service",
+		"description": "REST API for orders (Spring Boot). Set collection variable `orderId` after **Create Order** (use Tests tab auto-save) or paste manually.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "orderId",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const j = pm.response.json();",
+									"    if (j && j.orderId) {",
+									"        pm.collectionVariables.set('orderId', j.orderId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerName\": \"Alice Johnson\",\n  \"amount\": 149.99\n}"
+						},
+						"url": "{{baseUrl}}/orders",
+						"description": "Creates an order. Initial status is NEW. Saves `orderId` to collection variable on 201."
+					},
+					"response": []
+				},
+				{
+					"name": "List All Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/orders",
+						"description": "Returns all orders in the in-memory store."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/orders/{{orderId}}",
+						"description": "Uses collection variable `orderId`. Run **Create Order** first or set `orderId` manually."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Status — PROCESSING",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"PROCESSING\"\n}"
+						},
+						"url": "{{baseUrl}}/orders/{{orderId}}/status",
+						"description": "Valid transition: NEW → PROCESSING."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Status — COMPLETED",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"COMPLETED\"\n}"
+						},
+						"url": "{{baseUrl}}/orders/{{orderId}}/status",
+						"description": "Valid transition: PROCESSING → COMPLETED."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Examples / Errors",
+			"item": [
+				{
+					"name": "Create Order — validation (blank name)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerName\": \"\",\n  \"amount\": 10\n}"
+						},
+						"url": "{{baseUrl}}/orders",
+						"description": "Expect 400 with validation errors."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order — validation (amount <= 0)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerName\": \"Bob\",\n  \"amount\": 0\n}"
+						},
+						"url": "{{baseUrl}}/orders",
+						"description": "Expect 400."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order — not found (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/orders/does-not-exist",
+						"description": "Expect 404."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Status — invalid (skip to COMPLETED)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"COMPLETED\"\n}"
+						},
+						"url": "{{baseUrl}}/orders/{{orderId}}/status",
+						"description": "Expect 400 if order is still NEW (invalid NEW→COMPLETED). Use a freshly created order that has NOT been set to PROCESSING."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Status — missing body (validation)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": "{{baseUrl}}/orders/{{orderId}}/status",
+						"description": "Expect 400 — status mandatory."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
