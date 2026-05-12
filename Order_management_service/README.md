@@ -67,11 +67,11 @@ sequenceDiagram
     participant InMemoryStore
     participant GlobalExceptionHandler
 
-    Client->>OrderController: POST /orders {customerName, amount}
+    Client->>OrderController: POST /orders with JSON body
     OrderController->>OrderController: @Valid — Bean Validation
     alt Validation fails
         OrderController->>GlobalExceptionHandler: MethodArgumentNotValidException
-        GlobalExceptionHandler-->>Client: 400 Bad Request + errors[]
+        GlobalExceptionHandler-->>Client: 400 Bad Request and validation errors
     else Validation passes
         OrderController->>OrderServiceImpl: createOrder(request)
         OrderServiceImpl->>OrderServiceImpl: generate UUID orderId
@@ -157,22 +157,22 @@ There is no physical database; this documents the logical data held in memory (i
 ```mermaid
 erDiagram
     ORDER {
-        string  orderId       PK  "UUID, generated on creation"
-        string  customerName      "Required, not blank"
-        double  amount            "Required, > 0"
-        enum    status            "NEW | PROCESSING | COMPLETED"
-        instant createdAt         "Set once at creation"
-        instant updatedAt         "Updated on every status change"
+        string orderId
+        string customerName
+        float amount
+        string status
+        string createdAt
+        string updatedAt
     }
-
     ORDER_STATUS_TRANSITION {
-        enum fromStatus  "Source state"
-        enum toStatus    "Target state"
-        bool allowed     "true = valid forward transition"
+        string fromStatus
+        string toStatus
+        bool allowed
     }
-
-    ORDER ||--o{ ORDER_STATUS_TRANSITION : "current status governs"
+    ORDER ||--o{ ORDER_STATUS_TRANSITION : governs
 ```
+
+GitHub’s Mermaid renderer often fails when ER attribute comments contain **HTML-like tokens** (for example `>` or `|` inside quoted text). The diagram above avoids those characters so it can render reliably; see the prose and table below for full semantics.
 
 **Valid transitions**
 
