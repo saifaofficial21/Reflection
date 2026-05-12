@@ -1,5 +1,6 @@
 HELP.md
 .env
+_submission_print.html
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
