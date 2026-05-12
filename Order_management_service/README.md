@@ -314,8 +314,8 @@ curl.exe -s -X PUT http://localhost:8080/orders/YOUR_ORDER_ID/status ^
 stateDiagram-v2
     direction LR
     [*] --> NEW : POST /orders
-    NEW --> PROCESSING : PUT /{orderId}/status
-    PROCESSING --> COMPLETED : PUT /{orderId}/status
+    NEW --> PROCESSING : PUT order status
+    PROCESSING --> COMPLETED : PUT order status
     COMPLETED --> [*]
 
     note right of NEW
@@ -338,29 +338,28 @@ stateDiagram-v2
 
 ```mermaid
 sequenceDiagram
-    autonumber
     participant Client
     participant OrderController
     participant OrderServiceImpl
     participant InMemoryStore
     participant GlobalExceptionHandler
 
-    Client->>OrderController: POST /orders with JSON body
-    OrderController->>OrderController: @Valid — Bean Validation
+    Client->>OrderController: POST /orders JSON body
+    OrderController->>OrderController: Bean validation
     alt Validation fails
         OrderController->>GlobalExceptionHandler: MethodArgumentNotValidException
-        GlobalExceptionHandler-->>Client: 400 Bad Request and validation errors
+        GlobalExceptionHandler-->>Client: 400 validation errors
     else Validation passes
-        OrderController->>OrderServiceImpl: createOrder(request)
-        OrderServiceImpl->>OrderServiceImpl: generate UUID orderId
-        OrderServiceImpl->>InMemoryStore: put(orderId, order)
+        OrderController->>OrderServiceImpl: createOrder
+        OrderServiceImpl->>OrderServiceImpl: new UUID orderId
+        OrderServiceImpl->>InMemoryStore: save order
         OrderServiceImpl-->>OrderController: OrderResponse
-        OrderController-->>Client: 201 Created + OrderResponse
+        OrderController-->>Client: 201 OrderResponse
     end
 
-    Client->>OrderController: PUT /orders/{orderId}/status {status}
-    OrderController->>OrderServiceImpl: updateOrderStatus(orderId, newStatus)
-    OrderServiceImpl->>InMemoryStore: get(orderId)
+    Client->>OrderController: PUT order status JSON
+    OrderController->>OrderServiceImpl: updateOrderStatus
+    OrderServiceImpl->>InMemoryStore: load order
     alt Order not found
         OrderServiceImpl->>GlobalExceptionHandler: OrderNotFoundException
         GlobalExceptionHandler-->>Client: 404 Not Found
@@ -368,9 +367,9 @@ sequenceDiagram
         OrderServiceImpl->>GlobalExceptionHandler: InvalidStatusTransitionException
         GlobalExceptionHandler-->>Client: 400 Bad Request
     else Transition valid
-        OrderServiceImpl->>InMemoryStore: order.setStatus(newStatus)
+        OrderServiceImpl->>InMemoryStore: apply new status
         OrderServiceImpl-->>OrderController: OrderResponse
-        OrderController-->>Client: 200 OK + OrderResponse
+        OrderController-->>Client: 200 OrderResponse
     end
 ```
 
@@ -383,8 +382,8 @@ graph TD
     end
 
     subgraph apiLayer [API Layer]
-        CTRL[OrderController @RestController]
-        GEH[GlobalExceptionHandler @RestControllerAdvice]
+        CTRL[OrderController REST]
+        GEH[GlobalExceptionHandler advice]
     end
 
     subgraph dtoLayer [DTO Layer]
@@ -395,7 +394,7 @@ graph TD
 
     subgraph serviceLayer [Service Layer]
         SVC[OrderService interface]
-        SVCI[OrderServiceImpl @Service]
+        SVCI[OrderServiceImpl service]
     end
 
     subgraph domainLayer [Domain Layer]
@@ -475,7 +474,7 @@ classDiagram
         -Instant createdAt
         -Instant updatedAt
         +setStatus(OrderStatus) void
-        +getters() ...
+        +getters
     }
 
     class OrderStatus {
@@ -499,7 +498,7 @@ classDiagram
         +createOrder(CreateOrderRequest) OrderResponse
         +getOrderById(String) OrderResponse
         +updateOrderStatus(String, OrderStatus) OrderResponse
-        +listAllOrders() List~OrderResponse~
+        +listAllOrders() List of OrderResponse
     }
 
     class OrderServiceImpl {
@@ -507,7 +506,7 @@ classDiagram
         +createOrder(CreateOrderRequest) OrderResponse
         +getOrderById(String) OrderResponse
         +updateOrderStatus(String, OrderStatus) OrderResponse
-        +listAllOrders() List~OrderResponse~
+        +listAllOrders() List of OrderResponse
         -findOrThrow(String) Order
     }
 
@@ -527,7 +526,7 @@ classDiagram
         -OrderStatus status
         -Instant createdAt
         -Instant updatedAt
-        +from(Order)$ OrderResponse
+        +fromOrder()
     }
 
     class OrderNotFoundException {
